@@ -131,4 +131,36 @@ resource "aws_ecs_service" "app" {
 
 ## Check & Rollback
 
-For checking the service status enable healthcheck on `aws_lb_target_group` resource, set the path and port of the target, then set also the healthy_threshold, interval, timeout, unhealthy_threshold, matcher if needed. Observability tools can be used as well for alerting system when the service is down. For rollback, I recommend change the tag latest first so it can be rollback to spesific version. But there is option to enable the deployment_circuit_breaker also on `aws_ecs_service` resource. 
+For checking the service status enable healthcheck on `aws_lb_target_group` resource, set the path and port of the target, then set also the healthy_threshold, interval, timeout, unhealthy_threshold, matcher if needed. Observability tools can be used as well for alerting system when the service is down. For rollback, I recommend change the tag latest first so it can be rollback to spesific version. But there is option to enable the deployment_circuit_breaker also on `aws_ecs_service` resource.
+
+
+# Progress Check
+
+## Terraform
+- Output result on `terraform fmt -check` & `terraform validate` :
+<br>![Terraform Output Result](docs/img/Terraform_Result.PNG)
+
+## Dockerfile
+- Docker Build Image Size Before :
+<br>![Image Size Before](docs/img/Docker_Build_Before.PNG)
+
+- Docker Build Image Size After :
+<br>![Image Size After](docs/img/Docker_Build_After.PNG)
+
+
+## Additional Notes
+If there is additional time : 
+- Build and push using spesific tag alongside the latest tag for the image.
+- Set the default variable value on variables.tf for database and image tag becomes :
+```
+variable "db_password" {
+    default = "DATABASE_SECRET_PASSWORD"
+}
+```
+and
+```
+variable "image_tag" {
+  default = "LATEST_IMAGE_TAG"
+}
+```
+- Add additional step on workflow regarding to get database password from github secret and image tag from github workflow. Then using command `sed` to replace the `DATABASE_SECRET_PASSWORD` and `LATEST_IMAGE_TAG` from variables.tf.
