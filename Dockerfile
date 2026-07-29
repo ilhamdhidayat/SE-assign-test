@@ -1,13 +1,22 @@
-FROM python:latest
+#Installing Dependencies
+FROM python:3.12-slim AS dependencies
 
 WORKDIR /app
+COPY app/requirements.txt .
 
-COPY . .
+RUN pip install -r requirements.txt
 
-RUN pip install -r app/requirements.txt
+#Run Flask App
+FROM python:3.12-slim
 
-ENV DB_PASSWORD=SuperSecret123!
+RUN useradd -ms /bin/bash appuser
+
+WORKDIR /app
+COPY --from=dependencies /usr/local /usr/local
+COPY --chown=appuser:appuser app/app.py .
+
+USER appuser
 
 EXPOSE 8080
 
-CMD ["python", "app/app.py"]
+CMD ["python", "app.py"]
