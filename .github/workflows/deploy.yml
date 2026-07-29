@@ -1,8 +1,10 @@
 name: deploy
 
 on:
-  push:
+  pull_request:
     branches: [main]
+    types:
+      - closed
 
 jobs:
   deploy:
@@ -25,7 +27,7 @@ jobs:
         run: pip install -r app/requirements.txt pytest
 
       - name: Run tests
-        continue-on-error: true
+        continue-on-error: false
         run: pytest app/
 
       - name: Build and push image
@@ -35,11 +37,18 @@ jobs:
         env:
           ECR_URL: 123456789012.dkr.ecr.us-east-1.amazonaws.com/demo-api
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform-version: "1.15.8"
+      
       - name: Terraform apply
         working-directory: infra
         run: |
           terraform init
-          terraform apply -auto-approve
+          terraform validate
+          terraform plan -out=prod.tfplan
+          terraform apply prod.tfplan
 
       - name: Force new deployment
         run: |

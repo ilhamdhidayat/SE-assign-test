@@ -5,6 +5,13 @@ terraform {
       version = "~> 5.0"
     }
   }
+  
+  backend "s3" {
+    bucket         = "iac-se-assigment-bucket"
+    key            = "terraform/fargate/demo-api.tfstate"
+    region         = var.aws_region
+    use_lockfile   = true
+  }
 }
 
 provider "aws" {
@@ -60,8 +67,8 @@ resource "aws_security_group" "app" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    from_port   = 0
-    to_port     = 65535
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -70,7 +77,7 @@ resource "aws_security_group" "app" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["103.156.164.122/32"]
   }
 
   egress {
@@ -169,7 +176,7 @@ resource "aws_ecs_service" "app" {
   name            = var.app_name
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
+  desired_count   = 2
   launch_type     = "FARGATE"
 
   network_configuration {

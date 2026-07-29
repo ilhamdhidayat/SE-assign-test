@@ -51,3 +51,80 @@ __pycache__/
 ARG DATABASE_PASSWORD
 ENV DB_PASSWORD=$DATABASE_PASSWORD
 ```
+
+## Infra Pipeline
+
+### CI/CD Pipeline
+
+- Set the CI/CD Pipeline from running when there are some push to branch `main`, into run only when there are closed pull request to branch `main`. Push directly into branch main is not a great idea since it can cause application error if not checked properly. 
+```
+on:
+  pull_request:
+    branches: [main]
+    types:
+      - closed
+```
+
+- On `Run tests` step the test is set to **continue-on-error: true** . Set this to false so when there are any issues/fails during the test the CI/CD pipeline will not continued and the app will not deployed.
+```
+      - name: Run tests
+        continue-on-error: false
+        run: pytest app/
+```
+
+- Adding new step `Set up Terraform` to make sure the terraform command is available like `Set up Python`. And better to use spesific version also to prevent version mismatch when running the apply.
+```
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform-version: "1.15.8"
+```
+
+- Adjust `Terraform apply` step, using validate and also plan with output file instead of **-auto-approve**
+```
+      - name: Terraform apply
+        working-directory: infra
+        run: |
+          terraform init
+          terraform validate
+          terraform plan -out=prod.tfplan
+          terraform apply prod.tfplan
+```
+
+### Infrastucture
+- Adding remote state file for terraform so when the state will be stored remotely and will not lost after CI/CD Pipeline done.
+```
+  backend "s3" {
+    bucket         = "iac-se-assigment-bucket"
+    key            = "terraform/fargate/demo-api.tfstate"
+    region         = var.aws_region
+    use_lockfile   = true
+  }
+```
+
+- Set the incoming port for application to be spesific same as the setup port on Application Load Balancer (80) so it will not open all port and set spesific incoming IP only for SSH port (22) for security hardening.
+```
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["103.156.164.122/32"]
+  }
+```
+
+- Set desired_count for the container to 2 for maximizing the 2 Availability Zone that already created. It also increasing the High Availability and Fault Tolerance.
+```
+resource "aws_ecs_service" "app" {
+  name            = var.app_name
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 2
+  launch_type     = "FARGATE"
+```
