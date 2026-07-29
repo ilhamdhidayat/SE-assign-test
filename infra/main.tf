@@ -130,6 +130,13 @@ resource "aws_lb_target_group" "app" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
+
+  health_check {
+    enabled             = true
+    path                = "/health"
+    protocol            = "HTTP"
+    port                = "8080"
+  }
 }
 
 resource "aws_lb_listener" "http" {
@@ -189,5 +196,10 @@ resource "aws_ecs_service" "app" {
     target_group_arn = aws_lb_target_group.app.arn
     container_name   = var.app_name
     container_port   = 8080
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
 }

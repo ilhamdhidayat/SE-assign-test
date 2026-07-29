@@ -128,3 +128,7 @@ resource "aws_ecs_service" "app" {
   desired_count   = 2
   launch_type     = "FARGATE"
 ```
+
+## Check & Rollback
+
+For checking the service status enable healthcheck on `aws_lb_target_group` resource, set the path and port of the target, then set also the healthy_threshold, interval, timeout, unhealthy_threshold, matcher if needed. Observability tools can be used as well for alerting system when the service is down. For rollback, I recommend change the tag latest first so it can be rollback to spesific version. But there is option to enable the deployment_circuit_breaker also on `aws_ecs_service` resource. 
